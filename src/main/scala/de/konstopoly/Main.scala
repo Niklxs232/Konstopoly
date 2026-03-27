@@ -3,4 +3,4 @@ package de.konstopoly
 
 
 @main def main(): Unit =
-  println("Willkommen in Konstopoly! :)")
+  println("Willkommen in Konstopoly! uwu :)")
