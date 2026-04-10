@@ -29,7 +29,7 @@ def currentField(player: Player): Field =
 
 // Spieler erstellen
 val player1 = Player("Jasmin")
-val player2 = Player("Niklas")
+val player2 = Player("Niklas2")
 
 // Daten abrufen
 player1.name
