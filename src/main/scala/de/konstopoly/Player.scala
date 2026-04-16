@@ -5,5 +5,5 @@ package de.konstopoly
 // position, properties, inJail usw.).
 // Diese Datei kann entfernt werden sobald model.Player vollständig ist.
 class Player {
-
+  val
 }
