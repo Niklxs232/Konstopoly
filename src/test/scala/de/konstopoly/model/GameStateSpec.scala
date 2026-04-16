@@ -7,10 +7,10 @@ import org.scalatest.matchers.should.Matchers._
 // Erkennung von Spielende (alle außer einem Spieler bankrott).
 class GameStateSpec extends AnyWordSpec{
   val board = Board()
-  val player1 = Player("Jasmin", figure = "Schiff")
-  val player2 = Player("Niklas", figure = "Fahrrad")
-  val player3 = Player("Leon", figure = "Imperia")
-  val player4 = Player("Paul", figure = "Bier")
+  val player1 = Player("Jasmin",500, 0, figure = "Schiff")
+  val player2 = Player("Niklas",500, 0, figure = "Fahrrad")
+  val player3 = Player("Leon",500, 0, figure = "Imperia")
+  val player4 = Player("Paul",500, 0, figure = "Bier")
 
   "a Gamestate" when {
 
