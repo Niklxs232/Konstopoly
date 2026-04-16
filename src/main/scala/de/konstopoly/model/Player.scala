@@ -13,7 +13,6 @@ case class Player (
   money: Int,
   position: Int= 0,
   figure: String = "",
-  properties: List[Field] = List()
   ) {
 
   //bewegen
@@ -27,11 +26,6 @@ case class Player (
   def removeMoney(amount: Int): Player =
     copy(money = money - amount)
 
-  //grundstück
-  def buyProperty(field: Field): Player =
-    copy(
-      money = money - field.price,
-      properties = properties :+ field
-    )
+  
 }
 

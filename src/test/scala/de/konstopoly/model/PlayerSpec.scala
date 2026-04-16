@@ -27,10 +27,7 @@ class PlayerSpec extends AnyWordSpec with Matchers {
       "start at position 0" in {
         player.position should be (0)
       }
-
-      "start with no properties" in {
-        player.properties should be(empty)
-      }
+      
 
       "have the correct figure" in {
         player.figure should be ("Schiff")
@@ -74,23 +71,7 @@ class PlayerSpec extends AnyWordSpec with Matchers {
       }
     }
   
-    //Grundstücke kaufen und besitzen
-    "buying proerties" should {
-  
-      "own a proerty after buying" in {
-        val player = Player("Jasmin", 1500, figure = "Schiff")
-        val field = Field("Münster", 200)
-        val updated = player.buyProperty(field)
-        updated.properties should contain(field)
-      }
-  
-      "have less money after buying a property" in {
-        val player = Player("Jasmin", 1500, figure = "Schiff")
-        val field = Field("Münster", 200)
-        val updated = player.buyProperty(field)
-        updated.money should be(1300)
-      }
-    } 
+    
   
     //Figur auswählen
     "choosing a figure" should {

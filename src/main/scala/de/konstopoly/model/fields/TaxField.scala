@@ -8,3 +8,4 @@ case class TaxField(
   name: String,
   amount: Int
 ) extends Field
+
