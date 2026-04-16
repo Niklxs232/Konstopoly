@@ -1,5 +1,7 @@
 package de.konstopoly.model.fields
 
+import de.konstopoly.model.Field
+
 // Ein kaufbares Grundstücksfeld. Enthält Kaufpreis, Mietpreise,
 // Hausanzahl sowie den aktuellen Besitzer. Beim Betreten wird
 // Miete fällig falls das Feld einem anderen Spieler gehört.
@@ -14,7 +16,7 @@ case class PropertyField(
   hasHotel: Boolean = false,
   isMortgaged: Boolean = false,
   owner: Option[String] = None
-):
+) extends Field:
   require(houses >= 0 && houses <= 4, "Häuseranzahl muss zwischen 0 und 4 liegen")
   require(rents.size == 6, "Es müssen genau 6 Mietpreise angegeben werden (0 Häuser bis Hotel)")
 

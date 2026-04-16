@@ -1,12 +1,13 @@
 package de.konstopoly.model
 
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.matchers.should.Matchers._
+import org.scalatest.matchers.should.Matchers.*
 
 // Tests für die Player-Klasse.
 // Prüft: Initialisierung mit Name/Startkapital, Bewegung auf dem Brett,
 // Geld hinzufügen/abziehen und Grundstücke kaufen/besitzen.
-class PlayerSpec extends AnyWordSpec{
+class PlayerSpec extends AnyWordSpec with Matchers {
 
   "A Player" when {
 
