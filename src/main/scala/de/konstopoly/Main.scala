@@ -1,6 +1,6 @@
 package de.konstopoly
-package de.konstopoly
 
-
+// Einstiegspunkt des Spiels. Initialisiert den GameController,
+// startet die TUI und beginnt die Spielschleife.
 @main def main(): Unit =
-  println("Willkommen in Konstopoly! uwu :)")
+  println("Willkommen in Konstopoly!")
