@@ -1,5 +1,4 @@
 package de.konstopoly.model.fields
-
 import de.konstopoly.model.Field
 
 // Das Start-Feld (Los). Wenn ein Spieler dieses Feld betritt

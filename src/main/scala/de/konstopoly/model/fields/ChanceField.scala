@@ -2,7 +2,7 @@ package de.konstopoly.model.fields
 
 import de.konstopoly.model.Field
 
-// Mögliche Effekte einer Ereignis- oder Gemeinschaftskarte.
+// Effekte von Ereignis oder Gemeinschaftskarte.
 sealed trait CardEffect
 case class ReceiveMoney(amount: Int)       extends CardEffect  // Geld von der Bank erhalten
 case class PayMoney(amount: Int)           extends CardEffect  // Geld an die Bank zahlen
