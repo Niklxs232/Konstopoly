@@ -34,6 +34,7 @@ class PlayerSpec extends AnyWordSpec with Matchers {
       }
     }
 
+    //bewegen
     "moving on board" should {
   
       "move forward by the dice value" in {
@@ -79,6 +80,12 @@ class PlayerSpec extends AnyWordSpec with Matchers {
       "have the correct figure after Selected" in {
         val player = Player("Jasmin", 1500, figure = "Schiff")
         player.figure should be ("Schiff")
+      }
+
+      "be able to change figure" in {
+        val player = Player("Jasmin", 1500, figure = "Schiff")
+        val updated = player.chooseFigure("Fahrrad")
+        updated.figure should be("Fahrrad")
       }
   
       "two player should have different figures" in {

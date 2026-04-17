@@ -10,9 +10,9 @@ package de.konstopoly.model
 //   - jailTurns:  wie viele Runden der Spieler noch im Gefängnis bleibt
 case class Player (
   name: String,
-  money: Int,
+  money: Int = 1500,
   position: Int= 0,
-  figure: String = "",
+  figure: String = ""
   ) {
 
   //bewegen
@@ -26,6 +26,9 @@ case class Player (
   def removeMoney(amount: Int): Player =
     copy(money = money - amount)
 
+  //figure
+  def chooseFigure(newFigure: String): Player =
+    copy(figure = newFigure)
   
 }
 
