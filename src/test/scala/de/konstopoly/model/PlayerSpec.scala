@@ -14,7 +14,7 @@ class PlayerSpec extends AnyWordSpec with Matchers {
     //initialiesierung
     "created with name, position, money and figure" should {
 
-      val player = Player("Jasmin", 1500, figure = "Schiff")
+      val player = Player("Jasmin", figure = "Schiff")
 
       "have the correct name" in {
         player.name should be ("Jasmin")
@@ -92,6 +92,11 @@ class PlayerSpec extends AnyWordSpec with Matchers {
         val player1 = Player("Jasmin", 1500, figure = "Schiff")
         val player2 = Player ("Niklas", 1500, figure = "Fahrrad")
         player1.figure should not be(player2.figure)
+      }
+
+      "should use empty string as default figure" in {
+        val player = Player("Test", 1500)
+        player.figure should be("")
       }
   
     }

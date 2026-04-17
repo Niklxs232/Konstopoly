@@ -16,6 +16,10 @@ class BoardSpec extends AnyWordSpec {
         board.fields.length should be(40)
       }
 
+      "have a size of 40" in {
+        board.size should be(40)
+      }
+
       "start with Los at position 0" in {
         board.fieldAt(0).name should be("Los")
       }
