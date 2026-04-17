@@ -2,8 +2,7 @@ package de.konstopoly.model.fields
 
 import de.konstopoly.model.Field
 
-// Ein Versorgungswerk (Elektrizität oder Wasser). Kaufpreis 150€.
-// Die Miete basiert auf dem Würfelergebnis (Logik im Controller).
+// Versorgungswerk (Elektrizität oder Wasser). Kaufpreis 150€.
 case class UtilityField(
   name: String,
   price: Int = 150,
