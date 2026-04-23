@@ -10,10 +10,7 @@ import scala.io.StdIn
   println()
 
   val count = readPlayerCount()
-  val names = (1 to count).map { i =>
-    print(s"Name Spieler $i: ")
-    StdIn.readLine().trim
-  }.toList
+  val names = readPlayerNames(count)
 
   controller.startGame(names)
   println(controller.message)
@@ -21,49 +18,74 @@ import scala.io.StdIn
 
 private def readPlayerCount(): Int =
   print(s"Anzahl Spieler (${PlayerConfig.minPlayers}-${PlayerConfig.maxPlayers}): ")
-  StdIn.readLine().trim.toIntOption match
-    case Some(n) if n >= PlayerConfig.minPlayers && n <= PlayerConfig.maxPlayers => n
-    case _ =>
-      println(s"Bitte eine Zahl zwischen ${PlayerConfig.minPlayers} und ${PlayerConfig.maxPlayers} eingeben.")
-      readPlayerCount()
+  val input = StdIn.readLine().trim.toIntOption
+  if input.isDefined && input.get >= PlayerConfig.minPlayers && input.get <= PlayerConfig.maxPlayers then
+    input.get
+  else
+    println(s"Bitte eine Zahl zwischen ${PlayerConfig.minPlayers} und ${PlayerConfig.maxPlayers} eingeben.")
+    readPlayerCount()
+
+private def readPlayerNames(count: Int): List[String] =
+  (1 to count).map { i =>
+    print(s"Name Spieler $i: ")
+    StdIn.readLine().trim
+  }.toList
 
 private def gameLoop(controller: GameController): Unit =
   var running = true
   while running do
     println()
     printState(controller)
-    if !controller.hasRolled then
-      println("Befehle: (r)oll | (q)uit")
-    else
-      println("Befehle: (b)uy | (e)nd | (q)uit")
+    printCommands(controller)
     print("> ")
     val input = StdIn.readLine()
     if input == null then
       running = false
     else
-      input.trim.toLowerCase match
-        case "roll" | "r" =>
-          controller.rollDice()
-          println(controller.message)
-        case "buy" | "b" =>
-          if controller.buyProperty() then
-            println(controller.message)
-          else
-            println("Kaufen nicht möglich. Besitzer ist: " + controller.currentFieldOwner)
-        case "end" | "e" =>
-          controller.endTurn()
-          println(controller.message)
-        case "quit" | "q" =>
-          running = false
-        case _ =>
-          println("Unbekannter Befehl.")
-
-      controller.gameState.winner.foreach { w =>
-        println(s"\n${w.name} hat gewonnen!")
-        running = false
-      }
+      running = handleInput(input.trim.toLowerCase, controller)
 
   println("Spiel beendet. Auf Wiedersehen!")
+
+private def printCommands(controller: GameController): Unit =
+  if !controller.hasRolled then
+    println("Befehle: (r)oll | (p)roperties | (q)uit")
+  else
+    println("Befehle: (b)uy | (e)nd | (p)roperties | (q)uit")
+
+private def handleInput(input: String, controller: GameController): Boolean =
+  input match
+    case "roll" | "r" =>
+      controller.rollDice()
+      println(controller.message)
+    case "buy" | "b" =>
+      if controller.buyProperty() then
+        println(controller.message)
+      else
+        println("Kaufen nicht möglich. Besitzer ist: " + controller.currentFieldOwner)
+    case "end" | "e" =>
+      controller.endTurn()
+      println(controller.message)
+    case "properties" | "p" =>
+      val props = controller.currentPlayerProperties
+      if props.isEmpty then
+        println("Du besitzt noch keine Grundstücke.")
+      else
+        println("Deine Grundstücke:")
+        props.foreach(p => println(s"  - $p"))
+    case "quit" | "q" =>
+      return false
+    case _ =>
+      println("Unbekannter Befehl.")
+
+  checkWinner(controller)
+
+private def checkWinner(controller: GameController): Boolean =
+  controller.gameState.winner match
+    case Some(w) =>
+      println(s"\n${w.name} hat gewonnen!")
+      false
+    case None =>
+      true
 
 private def printState(controller: GameController): Unit =
   val state = controller.gameState
