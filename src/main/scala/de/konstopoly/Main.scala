@@ -32,29 +32,26 @@ private def gameLoop(controller: GameController): Unit =
   while running do
     println()
     printState(controller)
-    println("Befehle: (w)ürfeln | (k)aufen | (e)nde | (z)urück | redo | (q)uit")
+    if !controller.hasRolled then
+      println("Befehle: (r)oll | (q)uit")
+    else
+      println("Befehle: (b)uy | (e)nd | (q)uit")
     print("> ")
     val input = StdIn.readLine()
     if input == null then
       running = false
     else
       input.trim.toLowerCase match
-        case "würfeln" | "w" =>
+        case "roll" | "r" =>
           controller.rollDice()
           println(controller.message)
-        case "kaufen" | "k" =>
+        case "buy" | "b" =>
           if controller.buyProperty() then
             println(controller.message)
           else
             println("Kaufen nicht möglich.")
-        case "ende" | "e" =>
+        case "end" | "e" =>
           controller.endTurn()
-          println(controller.message)
-        case "zurück" | "z" =>
-          controller.undo()
-          println(controller.message)
-        case "redo" =>
-          controller.redo()
           println(controller.message)
         case "quit" | "q" =>
           running = false
