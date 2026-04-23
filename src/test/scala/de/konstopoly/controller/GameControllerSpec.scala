@@ -4,13 +4,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers._
 import de.konstopoly.model.*
 import de.konstopoly.model.fields.*
-import de.konstopoly.util.Observer
 
 class GameControllerSpec extends AnyWordSpec {
-
-  class TestObserver extends Observer:
-    var updateCount = 0
-    def update(): Unit = updateCount += 1
 
   def controllerWithPlayers(names: String*): GameController =
     val c = new GameController
@@ -189,6 +184,52 @@ class GameControllerSpec extends AnyWordSpec {
       }
     }
 
+    "showing properties" should {
+      "return empty list when player owns nothing" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        c.currentPlayerProperties should be(empty)
+      }
+
+      "list bought PropertyField" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(1, 2))
+        c.buyProperty()
+        val props = c.currentPlayerProperties
+        props.length should be(1)
+        props.head should include("Konzilstrasse")
+      }
+
+      "list bought StationField" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(2, 3))
+        c.buyProperty()
+        val props = c.currentPlayerProperties
+        props.length should be(1)
+        props.head should include("Hauptbahnhof")
+      }
+
+      "list multiple properties" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(1, 2))
+        c.buyProperty()
+        c.endTurn()
+        c.rollDice(Dice(2, 3))
+        c.endTurn()
+        setPosition(c, 0, 0)
+        c.rollDice(Dice(2, 3))
+        c.buyProperty()
+        c.currentPlayerProperties.length should be(2)
+      }
+
+      "not show properties of other players" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(1, 2))
+        c.buyProperty()
+        c.endTurn()
+        c.currentPlayerProperties should be(empty)
+      }
+    }
+
     "ending turn" should {
       "switch to next player and reset hasRolled" in {
         val c = controllerWithPlayers("Anna", "Ben")
@@ -221,52 +262,6 @@ class GameControllerSpec extends AnyWordSpec {
         c.endTurn()
         c.gameState.currentPlayer.name should be("Anna")
         c.message should include("zuerst würfeln")
-      }
-    }
-
-    "observer notification" should {
-      "notify observers on startGame" in {
-        val c = new GameController
-        val obs = new TestObserver
-        c.add(obs)
-        c.startGame(List("Anna", "Ben"))
-        obs.updateCount should be(1)
-      }
-
-      "notify observers on rollDice" in {
-        val c = controllerWithPlayers("Anna", "Ben")
-        val obs = new TestObserver
-        c.add(obs)
-        c.rollDice(Dice(1, 2))
-        obs.updateCount should be(1)
-      }
-
-      "notify observers on buyProperty" in {
-        val c = controllerWithPlayers("Anna", "Ben")
-        c.rollDice(Dice(1, 2))
-        val obs = new TestObserver
-        c.add(obs)
-        c.buyProperty()
-        obs.updateCount should be(1)
-      }
-
-      "notify observers on endTurn" in {
-        val c = controllerWithPlayers("Anna", "Ben")
-        c.rollDice(Dice(1, 2))
-        val obs = new TestObserver
-        c.add(obs)
-        c.endTurn()
-        obs.updateCount should be(1)
-      }
-
-      "allow removing an observer" in {
-        val c = controllerWithPlayers("Anna", "Ben")
-        val obs = new TestObserver
-        c.add(obs)
-        c.remove(obs)
-        c.rollDice(Dice(1, 2))
-        c.endTurn()
-        obs.updateCount should be(0)
       }
     }
 

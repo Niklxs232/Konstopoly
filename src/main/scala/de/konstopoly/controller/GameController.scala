@@ -2,134 +2,119 @@ package de.konstopoly.controller
 
 import de.konstopoly.model.*
 import de.konstopoly.model.fields.*
-import de.konstopoly.util.Observable
 
-class GameController extends Observable:
+class GameController:
   var gameState: GameState = _
   var message: String = ""
   var hasRolled: Boolean = false
 
   def startGame(playerNames: List[String]): Unit =
-    gameState = GameState(playerNames.map(name => Player(name)), Board())
+    gameState = GameState(playerNames.map(Player(_)), Board())
     hasRolled = false
     message = "Spiel gestartet!"
-    notifyObservers()
 
   def rollDice(): Dice =
     val dice = Dice()
-    doRoll(dice)
+    rollDice(dice)
     dice
 
   def rollDice(dice: Dice): Unit =
-    doRoll(dice)
-
-  private def doRoll(dice: Dice): Unit =
     if hasRolled then
       message = "Du hast diese Runde bereits gewürfelt."
       return
+
     val player = gameState.currentPlayer
-    val oldPos = player.position
-    val newPos = (oldPos + dice.total) % 40
-    val passedGo = oldPos + dice.total >= 40
-    var updated = player.copy(position = newPos)
+    val newPos = (player.position + dice.total) % 40
+    val passedGo = player.position + dice.total >= 40
+
+    var moved = player.copy(position = newPos)
     if passedGo then
-      updated = updated.addMoney(PlayerConfig.goBonus)
+      moved = moved.addMoney(PlayerConfig.goBonus)
       message = s"${player.name} würfelt ${dice.total} und überquert Los (+${PlayerConfig.goBonus}€). "
     else
       message = s"${player.name} würfelt ${dice.total}. "
-    gameState = updateCurrentPlayer(updated)
+
+    gameState = updateCurrentPlayer(moved)
     handleFieldEffect(newPos, dice.total)
     hasRolled = true
-    notifyObservers()
 
   private def handleFieldEffect(position: Int, diceTotal: Int): Unit =
     val field = gameState.board.fieldAt(position)
-    val currentName = gameState.currentPlayer.name
+    val player = gameState.currentPlayer
+
     field match
       case t: TaxField =>
-        gameState = updateCurrentPlayer(gameState.currentPlayer.removeMoney(t.amount))
+        gameState = updateCurrentPlayer(player.removeMoney(t.amount))
         message += s"Steuer: ${t.amount}€"
 
       case _: GoToJailField =>
-        gameState = updateCurrentPlayer(gameState.currentPlayer.copy(position = 10))
+        gameState = updateCurrentPlayer(player.copy(position = 10))
         message += "Ab ins Gefängnis!"
 
-      case p: PropertyField if p.isOwned && p.owner.get != currentName =>
-        payRent(currentName, p.owner.get, p.rent)
+      case p: PropertyField if p.isOwned && p.owner.get != player.name =>
+        payRent(player.name, p.owner.get, p.rent)
         message += s"Miete ${p.rent}€ an ${p.owner.get}"
 
-      case s: StationField if s.isOwned && s.owner.get != currentName =>
-        val ownerName = s.owner.get
+      case s: StationField if s.isOwned && s.owner.get != player.name =>
         val count = gameState.board.fields.count {
-          case sf: StationField => sf.owner.contains(ownerName)
-          case _ => false
+          case sf: StationField => sf.owner.contains(s.owner.get)
+          case _                => false
         }
         val rent = 25 * math.pow(2, count - 1).toInt
-        payRent(currentName, ownerName, rent)
-        message += s"Bahnhofsmiete ${rent}€ an $ownerName"
+        payRent(player.name, s.owner.get, rent)
+        message += s"Bahnhofsmiete ${rent}€ an ${s.owner.get}"
 
-      case u: UtilityField if u.isOwned && u.owner.get != currentName =>
-        val ownerName = u.owner.get
+      case u: UtilityField if u.isOwned && u.owner.get != player.name =>
         val count = gameState.board.fields.count {
-          case uf: UtilityField => uf.owner.contains(ownerName)
-          case _ => false
+          case uf: UtilityField => uf.owner.contains(u.owner.get)
+          case _                => false
         }
         val multiplier = if count >= 2 then 10 else 4
         val rent = multiplier * diceTotal
-        payRent(currentName, ownerName, rent)
-        message += s"Versorgungsmiete ${rent}€ an $ownerName"
+        payRent(player.name, u.owner.get, rent)
+        message += s"Versorgungsmiete ${rent}€ an ${u.owner.get}"
 
       case c: ChanceField =>
         val card = c.drawCard(scala.util.Random.nextInt(c.cards.size))
         applyCardEffect(card)
         message += s"Karte: ${card.description}"
 
-      case p: PropertyField if p.isUnowned =>
-        message += s"${p.name} steht zum Verkauf (${p.price}€)"
-
-      case s: StationField if s.isUnowned =>
-        message += s"${s.name} steht zum Verkauf (${s.price}€)"
-
-      case u: UtilityField if u.isUnowned =>
-        message += s"${u.name} steht zum Verkauf (${u.price}€)"
-
-      case _ =>
-        message += field.name
+      case p: PropertyField if p.isUnowned => message += s"${p.name} steht zum Verkauf (${p.price}€)"
+      case s: StationField if s.isUnowned  => message += s"${s.name} steht zum Verkauf (${s.price}€)"
+      case u: UtilityField if u.isUnowned  => message += s"${u.name} steht zum Verkauf (${u.price}€)"
+      case _                               => message += field.name
 
   private def applyCardEffect(card: Card): Unit =
     val player = gameState.currentPlayer
     card.effect match
-      case ReceiveMoney(amount) =>
-        gameState = updateCurrentPlayer(player.addMoney(amount))
-      case PayMoney(amount) =>
-        gameState = updateCurrentPlayer(player.removeMoney(amount))
-      case MoveToField(position) =>
-        val passedGo = position < player.position
-        var updated = player.copy(position = position)
-        if passedGo then updated = updated.addMoney(PlayerConfig.goBonus)
+      case ReceiveMoney(amount) => gameState = updateCurrentPlayer(player.addMoney(amount))
+      case PayMoney(amount)     => gameState = updateCurrentPlayer(player.removeMoney(amount))
+      case GoToJail             => gameState = updateCurrentPlayer(player.copy(position = 10))
+      case MoveRelative(steps)  => gameState = updateCurrentPlayer(player.copy(position = (player.position + steps + 40) % 40))
+      case MoveToField(pos) =>
+        var updated = player.copy(position = pos)
+        if pos < player.position then updated = updated.addMoney(PlayerConfig.goBonus)
         gameState = updateCurrentPlayer(updated)
-      case MoveRelative(steps) =>
-        val newPos = (player.position + steps + 40) % 40
-        gameState = updateCurrentPlayer(player.copy(position = newPos))
       case CollectFromPlayers(amount) =>
-        val otherCount = gameState.players.length - 1
         val players = gameState.players.map { pl =>
-          if pl.name == player.name then pl.addMoney(amount * otherCount)
+          if pl.name == player.name then pl.addMoney(amount * (gameState.players.length - 1))
           else pl.removeMoney(amount)
         }
         gameState = gameState.copy(players = players)
-      case GoToJail =>
-        gameState = updateCurrentPlayer(player.copy(position = 10))
       case MoveToNextStation =>
-        val pos = player.position
-        val stationPositions = gameState.board.fields.zipWithIndex.collect {
-          case (_: StationField, i) => i
-        }
-        val next = stationPositions.find(_ > pos).getOrElse(stationPositions.head)
-        val passedGo = next < pos
+        val stations = gameState.board.fields.zipWithIndex.collect { case (_: StationField, i) => i }
+        val next = stations.find(_ > player.position).getOrElse(stations.head)
         var updated = player.copy(position = next)
-        if passedGo then updated = updated.addMoney(PlayerConfig.goBonus)
+        if next < player.position then updated = updated.addMoney(PlayerConfig.goBonus)
         gameState = updateCurrentPlayer(updated)
+
+  def currentPlayerProperties: List[String] =
+    val name = gameState.currentPlayer.name
+    gameState.board.fields.collect {
+      case p: PropertyField if p.owner.contains(name) => s"${p.name} (${p.colorGroup}, Miete ${p.rent}€)"
+      case s: StationField if s.owner.contains(name)  => s"${s.name} (Bahnhof)"
+      case u: UtilityField if u.owner.contains(name)  => s"${u.name} (Versorgungswerk)"
+    }.toList
 
   def currentFieldOwner: String =
     gameState.board.fieldAt(gameState.currentPlayer.position) match
@@ -141,27 +126,18 @@ class GameController extends Observable:
   def buyProperty(): Boolean =
     if !hasRolled then return false
     val player = gameState.currentPlayer
-    val field = gameState.board.fieldAt(player.position)
-    field match
-      case p: PropertyField if p.isUnowned && player.money >= p.price =>
-        val updatedFields = gameState.board.fields.updated(player.position, p.buyBy(player.name))
-        gameState = updateCurrentPlayer(player.removeMoney(p.price)).copy(board = Board(updatedFields))
-        message = s"${player.name} kauft ${p.name} für ${p.price}€"
-        notifyObservers()
-        true
-      case s: StationField if s.isUnowned && player.money >= s.price =>
-        val updatedFields = gameState.board.fields.updated(player.position, s.buyBy(player.name))
-        gameState = updateCurrentPlayer(player.removeMoney(s.price)).copy(board = Board(updatedFields))
-        message = s"${player.name} kauft ${s.name} für ${s.price}€"
-        notifyObservers()
-        true
-      case u: UtilityField if u.isUnowned && player.money >= u.price =>
-        val updatedFields = gameState.board.fields.updated(player.position, u.buyBy(player.name))
-        gameState = updateCurrentPlayer(player.removeMoney(u.price)).copy(board = Board(updatedFields))
-        message = s"${player.name} kauft ${u.name} für ${u.price}€"
-        notifyObservers()
-        true
+    gameState.board.fieldAt(player.position) match
+      case p: PropertyField if p.isUnowned && player.money >= p.price => doBuy(p.name, p.price, p.buyBy(player.name))
+      case s: StationField if s.isUnowned && player.money >= s.price  => doBuy(s.name, s.price, s.buyBy(player.name))
+      case u: UtilityField if u.isUnowned && player.money >= u.price  => doBuy(u.name, u.price, u.buyBy(player.name))
       case _ => false
+
+  private def doBuy(fieldName: String, price: Int, boughtField: Field): Boolean =
+    val player = gameState.currentPlayer
+    val updatedFields = gameState.board.fields.updated(player.position, boughtField)
+    gameState = updateCurrentPlayer(player.removeMoney(price)).copy(board = Board(updatedFields))
+    message = s"${player.name} kauft $fieldName für ${price}€"
+    true
 
   def endTurn(): Unit =
     if !hasRolled then
@@ -170,7 +146,6 @@ class GameController extends Observable:
     hasRolled = false
     gameState = gameState.nextPlayer
     message = s"${gameState.currentPlayer.name} ist am Zug"
-    notifyObservers()
 
   private def payRent(payerName: String, ownerName: String, amount: Int): Unit =
     val players = gameState.players.map { pl =>
@@ -181,5 +156,4 @@ class GameController extends Observable:
     gameState = gameState.copy(players = players)
 
   private def updateCurrentPlayer(player: Player): GameState =
-    val updatedPlayers = gameState.players.updated(gameState.currentPlayerIndex, player)
-    gameState.copy(players = updatedPlayers)
+    gameState.copy(players = gameState.players.updated(gameState.currentPlayerIndex, player))
