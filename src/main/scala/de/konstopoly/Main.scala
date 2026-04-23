@@ -49,7 +49,7 @@ private def gameLoop(controller: GameController): Unit =
           if controller.buyProperty() then
             println(controller.message)
           else
-            println("Kaufen nicht möglich.")
+            println("Kaufen nicht möglich. Besitzer ist: " + controller.currentFieldOwner)
         case "end" | "e" =>
           controller.endTurn()
           println(controller.message)
