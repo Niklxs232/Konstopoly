@@ -10,7 +10,7 @@ package de.konstopoly.model
 //   - jailTurns:  wie viele Runden der Spieler noch im Gefängnis bleibt
 case class Player (
   name: String,
-  money: Int = 1500,
+  money: Int = PlayerConfig.startMoney,
   position: Int= 0,
   figure: String = ""
   ) {

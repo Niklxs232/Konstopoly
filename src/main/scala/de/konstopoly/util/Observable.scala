@@ -1,8 +1,13 @@
 package de.konstopoly.util
 
-// Trait für alle beobachtbaren Objekte (Observer Pattern).
-// Der GameController mischt diesen Trait ein und ruft notifyObservers()
-// auf, damit alle registrierten Observer den neuen Zustand erhalten.
-trait Observable {
+trait Observable:
+  private var observers: List[Observer] = Nil
 
-}
+  def add(observer: Observer): Unit =
+    observers = observer :: observers
+
+  def remove(observer: Observer): Unit =
+    observers = observers.filterNot(_ == observer)
+
+  def notifyObservers(): Unit =
+    observers.foreach(_.update())
