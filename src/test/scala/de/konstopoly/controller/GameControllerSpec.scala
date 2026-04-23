@@ -17,6 +17,11 @@ class GameControllerSpec extends AnyWordSpec {
     val updated = state.players(playerIndex).copy(position = pos)
     controller.gameState = state.copy(players = state.players.updated(playerIndex, updated))
 
+  def putChanceCard(controller: GameController, position: Int, card: Card): Unit =
+    val singleCardField = ChanceField("Testfeld", Vector(card))
+    val fields = controller.gameState.board.fields.updated(position, singleCardField)
+    controller.gameState = controller.gameState.copy(board = Board(fields))
+
   "a GameController" when {
 
     "starting a game" should {
@@ -52,6 +57,15 @@ class GameControllerSpec extends AnyWordSpec {
         val c = controllerWithPlayers("Anna", "Ben")
         c.rollDice(Dice(1, 2))
         c.gameState.currentPlayer.position should be(3)
+      }
+
+      "work with random dice" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        val dice = c.rollDice()
+        c.hasRolled should be(true)
+        dice.total should be >= 2
+        dice.total should be <= 12
+        c.gameState.currentPlayer.position should be(dice.total)
       }
 
       "set hasRolled to true" in {
@@ -100,6 +114,15 @@ class GameControllerSpec extends AnyWordSpec {
         c.gameState.players.head.money should be(1444)
       }
 
+      "not change money of uninvolved player when rent is paid" in {
+        val c = controllerWithPlayers("Anna", "Ben", "Carl")
+        c.rollDice(Dice(1, 2))
+        c.buyProperty()
+        c.endTurn()
+        c.rollDice(Dice(1, 2))
+        c.gameState.players(2).money should be(1500)
+      }
+
       "charge station rent when landing on owned StationField" in {
         val c = controllerWithPlayers("Anna", "Ben")
         c.rollDice(Dice(2, 3))
@@ -110,7 +133,7 @@ class GameControllerSpec extends AnyWordSpec {
         c.gameState.players.head.money should be(1325)
       }
 
-      "charge utility rent based on dice total" in {
+      "charge utility rent with multiplier 4 when owner has one utility" in {
         val c = controllerWithPlayers("Anna", "Ben")
         c.rollDice(Dice(6, 6))
         c.buyProperty()
@@ -119,6 +142,22 @@ class GameControllerSpec extends AnyWordSpec {
         c.rollDice(utilityDice)
         c.gameState.currentPlayer.money should be(1500 - 4 * 12)
         c.gameState.players.head.money should be(1350 + 4 * 12)
+      }
+
+      "charge utility rent with multiplier 10 when owner has both utilities" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        // Give Anna both utilities directly on the board
+        val fields = c.gameState.board.fields
+        val f12 = fields(12).asInstanceOf[UtilityField].buyBy("Anna")
+        val f28 = fields(28).asInstanceOf[UtilityField].buyBy("Anna")
+        c.gameState = c.gameState.copy(board = Board(fields.updated(12, f12).updated(28, f28)))
+        // Anna rolls somewhere safe (FreeParkingField at 20)
+        setPosition(c, 0, 19)
+        c.rollDice(Dice(1, 0))
+        c.endTurn()
+        // Ben lands on Elektrizitaetswerk at position 12
+        c.rollDice(Dice(6, 6))
+        c.gameState.currentPlayer.money should be(1500 - 10 * 12)
       }
 
       "not charge rent when landing on own property" in {
@@ -132,6 +171,109 @@ class GameControllerSpec extends AnyWordSpec {
         setPosition(c, 0, 0)
         c.rollDice(Dice(1, 2))
         c.gameState.currentPlayer.money should be(moneyAfterRent)
+      }
+
+      "show field name when landing on JailField (visit)" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        setPosition(c, 0, 6)
+        c.rollDice(Dice(2, 2))
+        c.gameState.currentPlayer.position should be(10)
+        c.message should include("Gefängnis")
+      }
+
+      "show field name when landing on FreeParkingField" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        setPosition(c, 0, 15)
+        c.rollDice(Dice(2, 3))
+        c.gameState.currentPlayer.position should be(20)
+        c.message should include("Frei Parken")
+      }
+
+      "show for sale message for unowned StationField" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(2, 3))
+        c.message should include("Hauptbahnhof")
+        c.message should include("Verkauf")
+      }
+
+      "show for sale message for unowned UtilityField" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(6, 6))
+        c.message should include("Elektrizitaetswerk")
+        c.message should include("Verkauf")
+      }
+    }
+
+    "card effects" should {
+      "handle ReceiveMoney" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        putChanceCard(c, 3, Card("Erhalte 100€", ReceiveMoney(100)))
+        c.rollDice(Dice(1, 2))
+        c.gameState.currentPlayer.money should be(1600)
+        c.message should include("Karte")
+      }
+
+      "handle PayMoney" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        putChanceCard(c, 3, Card("Zahle 50€", PayMoney(50)))
+        c.rollDice(Dice(1, 2))
+        c.gameState.currentPlayer.money should be(1450)
+      }
+
+      "handle GoToJail" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        putChanceCard(c, 3, Card("Ins Gefängnis", GoToJail))
+        c.rollDice(Dice(1, 2))
+        c.gameState.currentPlayer.position should be(10)
+      }
+
+      "handle MoveToField with Go bonus" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        setPosition(c, 0, 10)
+        putChanceCard(c, 13, Card("Zu Los", MoveToField(0)))
+        c.rollDice(Dice(1, 2))
+        c.gameState.currentPlayer.position should be(0)
+        c.gameState.currentPlayer.money should be(1700)
+      }
+
+      "handle MoveToField without Go bonus" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        putChanceCard(c, 3, Card("Zu Feld 10", MoveToField(10)))
+        c.rollDice(Dice(1, 2))
+        c.gameState.currentPlayer.position should be(10)
+        c.gameState.currentPlayer.money should be(1500)
+      }
+
+      "handle MoveRelative" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        putChanceCard(c, 3, Card("3 zurück", MoveRelative(-3)))
+        c.rollDice(Dice(1, 2))
+        c.gameState.currentPlayer.position should be(0)
+      }
+
+      "handle CollectFromPlayers" in {
+        val c = controllerWithPlayers("Anna", "Ben", "Carl")
+        putChanceCard(c, 3, Card("10€ von jedem", CollectFromPlayers(10)))
+        c.rollDice(Dice(1, 2))
+        c.gameState.currentPlayer.money should be(1520)
+        c.gameState.players(1).money should be(1490)
+        c.gameState.players(2).money should be(1490)
+      }
+
+      "handle MoveToNextStation" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        putChanceCard(c, 3, Card("Nächster Bahnhof", MoveToNextStation))
+        c.rollDice(Dice(1, 2))
+        c.gameState.currentPlayer.position should be(5)
+      }
+
+      "handle MoveToNextStation with wrap around and Go bonus" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        setPosition(c, 0, 34)
+        putChanceCard(c, 36, Card("Nächster Bahnhof", MoveToNextStation))
+        c.rollDice(Dice(1, 1))
+        c.gameState.currentPlayer.position should be(5)
+        c.gameState.currentPlayer.money should be(1700)
       }
     }
 
@@ -208,6 +350,15 @@ class GameControllerSpec extends AnyWordSpec {
         props.head should include("Hauptbahnhof")
       }
 
+      "list bought UtilityField" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(6, 6))
+        c.buyProperty()
+        val props = c.currentPlayerProperties
+        props.length should be(1)
+        props.head should include("Elektrizitaetswerk")
+      }
+
       "list multiple properties" in {
         val c = controllerWithPlayers("Anna", "Ben")
         c.rollDice(Dice(1, 2))
@@ -227,6 +378,40 @@ class GameControllerSpec extends AnyWordSpec {
         c.buyProperty()
         c.endTurn()
         c.currentPlayerProperties should be(empty)
+      }
+    }
+
+    "currentFieldOwner" should {
+      "return owner name for owned PropertyField" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(1, 2))
+        c.buyProperty()
+        c.currentFieldOwner should be("Anna")
+      }
+
+      "return Niemand for unowned PropertyField" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(1, 2))
+        c.currentFieldOwner should be("Niemand")
+      }
+
+      "return Niemand for non-buyable field" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        c.currentFieldOwner should be("Niemand")
+      }
+
+      "return owner name for owned StationField" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(2, 3))
+        c.buyProperty()
+        c.currentFieldOwner should be("Anna")
+      }
+
+      "return owner name for owned UtilityField" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(6, 6))
+        c.buyProperty()
+        c.currentFieldOwner should be("Anna")
       }
     }
 
