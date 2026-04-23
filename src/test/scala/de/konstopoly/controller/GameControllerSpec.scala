@@ -45,6 +45,11 @@ class GameControllerSpec extends AnyWordSpec {
         c.gameState.round should be(1)
         c.gameState.currentPlayer.name should be("Anna")
       }
+
+      "set hasRolled to false" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        c.hasRolled should be(false)
+      }
     }
 
     "rolling dice" should {
@@ -52,6 +57,20 @@ class GameControllerSpec extends AnyWordSpec {
         val c = controllerWithPlayers("Anna", "Ben")
         c.rollDice(Dice(1, 2))
         c.gameState.currentPlayer.position should be(3)
+      }
+
+      "set hasRolled to true" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(1, 2))
+        c.hasRolled should be(true)
+      }
+
+      "not allow rolling twice in one turn" in {
+        val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(1, 2))
+        c.rollDice(Dice(3, 3))
+        c.gameState.currentPlayer.position should be(3)
+        c.message should include("bereits gewürfelt")
       }
 
       "give 200€ when passing Go" in {
@@ -111,7 +130,6 @@ class GameControllerSpec extends AnyWordSpec {
         val c = controllerWithPlayers("Anna", "Ben")
         c.rollDice(Dice(1, 2))
         c.buyProperty()
-        val moneyAfterBuy = c.gameState.currentPlayer.money
         c.endTurn()
         c.rollDice(Dice(1, 2))
         val moneyAfterRent = c.gameState.players.head.money
@@ -165,82 +183,44 @@ class GameControllerSpec extends AnyWordSpec {
         c.buyProperty() should be(false)
       }
 
-      "return false on non-buyable field" in {
+      "return false when player has not rolled yet" in {
         val c = controllerWithPlayers("Anna", "Ben")
         c.buyProperty() should be(false)
       }
     }
 
     "ending turn" should {
-      "switch to next player" in {
+      "switch to next player and reset hasRolled" in {
         val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(1, 2))
         c.endTurn()
         c.gameState.currentPlayer.name should be("Ben")
+        c.hasRolled should be(false)
       }
 
       "wrap around to first player" in {
         val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(1, 2))
         c.endTurn()
+        c.rollDice(Dice(1, 2))
         c.endTurn()
         c.gameState.currentPlayer.name should be("Anna")
       }
 
       "increase round after all players had a turn" in {
         val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(1, 2))
         c.endTurn()
+        c.rollDice(Dice(1, 2))
         c.endTurn()
         c.gameState.round should be(2)
       }
-    }
 
-    "undo and redo" should {
-      "undo the last roll" in {
+      "not allow ending turn before rolling" in {
         val c = controllerWithPlayers("Anna", "Ben")
-        c.rollDice(Dice(1, 2))
-        c.gameState.currentPlayer.position should be(3)
-        c.undo()
-        c.gameState.currentPlayer.position should be(0)
-      }
-
-      "undo a property purchase" in {
-        val c = controllerWithPlayers("Anna", "Ben")
-        c.rollDice(Dice(1, 2))
-        c.buyProperty()
-        c.gameState.currentPlayer.money should be(1440)
-        c.undo()
-        c.gameState.currentPlayer.money should be(1500)
-        c.gameState.currentPlayer.position should be(3)
-        c.gameState.board.fieldAt(3).asInstanceOf[PropertyField].owner should be(None)
-      }
-
-      "redo an undone action" in {
-        val c = controllerWithPlayers("Anna", "Ben")
-        c.rollDice(Dice(1, 2))
-        c.undo()
-        c.gameState.currentPlayer.position should be(0)
-        c.redo()
-        c.gameState.currentPlayer.position should be(3)
-      }
-
-      "clear redo stack on new action" in {
-        val c = controllerWithPlayers("Anna", "Ben")
-        c.rollDice(Dice(1, 2))
-        c.undo()
-        c.rollDice(Dice(2, 2))
-        c.redo()
-        c.gameState.currentPlayer.position should be(4)
-      }
-
-      "do nothing when undo stack is empty" in {
-        val c = controllerWithPlayers("Anna", "Ben")
-        c.undo()
-        c.gameState.currentPlayer.position should be(0)
-      }
-
-      "do nothing when redo stack is empty" in {
-        val c = controllerWithPlayers("Anna", "Ben")
-        c.redo()
-        c.gameState.currentPlayer.position should be(0)
+        c.endTurn()
+        c.gameState.currentPlayer.name should be("Anna")
+        c.message should include("zuerst würfeln")
       }
     }
 
@@ -272,18 +252,10 @@ class GameControllerSpec extends AnyWordSpec {
 
       "notify observers on endTurn" in {
         val c = controllerWithPlayers("Anna", "Ben")
-        val obs = new TestObserver
-        c.add(obs)
-        c.endTurn()
-        obs.updateCount should be(1)
-      }
-
-      "notify observers on undo" in {
-        val c = controllerWithPlayers("Anna", "Ben")
         c.rollDice(Dice(1, 2))
         val obs = new TestObserver
         c.add(obs)
-        c.undo()
+        c.endTurn()
         obs.updateCount should be(1)
       }
 
@@ -292,6 +264,7 @@ class GameControllerSpec extends AnyWordSpec {
         val obs = new TestObserver
         c.add(obs)
         c.remove(obs)
+        c.rollDice(Dice(1, 2))
         c.endTurn()
         obs.updateCount should be(0)
       }
@@ -314,6 +287,7 @@ class GameControllerSpec extends AnyWordSpec {
 
       "show turn info" in {
         val c = controllerWithPlayers("Anna", "Ben")
+        c.rollDice(Dice(1, 2))
         c.endTurn()
         c.message should include("Ben")
       }

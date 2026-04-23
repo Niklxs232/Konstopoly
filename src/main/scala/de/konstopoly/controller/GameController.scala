@@ -7,13 +7,11 @@ import de.konstopoly.util.Observable
 class GameController extends Observable:
   var gameState: GameState = _
   var message: String = ""
-  private var undoStack: List[GameState] = Nil
-  private var redoStack: List[GameState] = Nil
+  var hasRolled: Boolean = false
 
   def startGame(playerNames: List[String]): Unit =
     gameState = GameState(playerNames.map(name => Player(name)), Board())
-    undoStack = Nil
-    redoStack = Nil
+    hasRolled = false
     message = "Spiel gestartet!"
     notifyObservers()
 
@@ -26,7 +24,9 @@ class GameController extends Observable:
     doRoll(dice)
 
   private def doRoll(dice: Dice): Unit =
-    saveState()
+    if hasRolled then
+      message = "Du hast diese Runde bereits gewürfelt."
+      return
     val player = gameState.currentPlayer
     val oldPos = player.position
     val newPos = (oldPos + dice.total) % 40
@@ -39,6 +39,7 @@ class GameController extends Observable:
       message = s"${player.name} würfelt ${dice.total}. "
     gameState = updateCurrentPlayer(updated)
     handleFieldEffect(newPos, dice.total)
+    hasRolled = true
     notifyObservers()
 
   private def handleFieldEffect(position: Int, diceTotal: Int): Unit =
@@ -131,25 +132,23 @@ class GameController extends Observable:
         gameState = updateCurrentPlayer(updated)
 
   def buyProperty(): Boolean =
+    if !hasRolled then return false
     val player = gameState.currentPlayer
     val field = gameState.board.fieldAt(player.position)
     field match
       case p: PropertyField if p.isUnowned && player.money >= p.price =>
-        saveState()
         val updatedFields = gameState.board.fields.updated(player.position, p.buyBy(player.name))
         gameState = updateCurrentPlayer(player.removeMoney(p.price)).copy(board = Board(updatedFields))
         message = s"${player.name} kauft ${p.name} für ${p.price}€"
         notifyObservers()
         true
       case s: StationField if s.isUnowned && player.money >= s.price =>
-        saveState()
         val updatedFields = gameState.board.fields.updated(player.position, s.buyBy(player.name))
         gameState = updateCurrentPlayer(player.removeMoney(s.price)).copy(board = Board(updatedFields))
         message = s"${player.name} kauft ${s.name} für ${s.price}€"
         notifyObservers()
         true
       case u: UtilityField if u.isUnowned && player.money >= u.price =>
-        saveState()
         val updatedFields = gameState.board.fields.updated(player.position, u.buyBy(player.name))
         gameState = updateCurrentPlayer(player.removeMoney(u.price)).copy(board = Board(updatedFields))
         message = s"${player.name} kauft ${u.name} für ${u.price}€"
@@ -158,34 +157,13 @@ class GameController extends Observable:
       case _ => false
 
   def endTurn(): Unit =
-    saveState()
+    if !hasRolled then
+      message = "Du musst zuerst würfeln."
+      return
+    hasRolled = false
     gameState = gameState.nextPlayer
     message = s"${gameState.currentPlayer.name} ist am Zug"
     notifyObservers()
-
-  def undo(): Unit =
-    undoStack match
-      case prev :: rest =>
-        redoStack = gameState :: redoStack
-        gameState = prev
-        undoStack = rest
-        message = "Rückgängig gemacht"
-        notifyObservers()
-      case Nil =>
-
-  def redo(): Unit =
-    redoStack match
-      case next :: rest =>
-        undoStack = gameState :: undoStack
-        gameState = next
-        redoStack = rest
-        message = "Wiederholt"
-        notifyObservers()
-      case Nil =>
-
-  private def saveState(): Unit =
-    undoStack = gameState :: undoStack
-    redoStack = Nil
 
   private def payRent(payerName: String, ownerName: String, amount: Int): Unit =
     val players = gameState.players.map { pl =>
