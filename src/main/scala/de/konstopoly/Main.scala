@@ -33,9 +33,9 @@ private def gameLoop(controller: GameController): Unit =
     println()
     printState(controller)
     if !controller.hasRolled then
-      println("Befehle: (r)oll | (q)uit")
+      println("Befehle: (r)oll | (q)uit | (i)nfo")
     else
-      println("Befehle: (b)uy | (e)nd | (q)uit")
+      println("Befehle: (b)uy | (e)nd | (q)uit | (i)nfo")
     print("> ")
     val input = StdIn.readLine()
     if input == null then
@@ -45,6 +45,8 @@ private def gameLoop(controller: GameController): Unit =
         case "roll" | "r" =>
           controller.rollDice()
           println(controller.message)
+        case "info" | "i" =>
+          
         case "buy" | "b" =>
           if controller.buyProperty() then
             println(controller.message)
