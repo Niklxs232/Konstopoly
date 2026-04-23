@@ -131,6 +131,13 @@ class GameController extends Observable:
         if passedGo then updated = updated.addMoney(PlayerConfig.goBonus)
         gameState = updateCurrentPlayer(updated)
 
+  def currentFieldOwner: String =
+    gameState.board.fieldAt(gameState.currentPlayer.position) match
+      case p: PropertyField => p.owner.getOrElse("Niemand")
+      case s: StationField  => s.owner.getOrElse("Niemand")
+      case u: UtilityField  => u.owner.getOrElse("Niemand")
+      case _                => "Niemand"
+
   def buyProperty(): Boolean =
     if !hasRolled then return false
     val player = gameState.currentPlayer
