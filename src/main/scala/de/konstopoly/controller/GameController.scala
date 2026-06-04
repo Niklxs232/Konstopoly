@@ -2,16 +2,31 @@ package de.konstopoly.controller
 
 import de.konstopoly.model.*
 import de.konstopoly.model.fields.*
+import de.konstopoly.util.Observable
 
-class GameController:
+class GameController extends Observable:
   var gameState: GameState = _
   var message: String = ""
   var hasRolled: Boolean = false
+
+  def minPlayers: Int = PlayerConfig.minPlayers
+  def maxPlayers: Int = PlayerConfig.maxPlayers
+  def currentRound: Int = gameState.round
+  def currentPlayerName: String = gameState.currentPlayer.name
+
+  def winner: Option[String] = gameState.winner.map(_.name)
+
+  def playerInfoStrings: List[String] = gameState.players.map { p =>
+    val marker = if p.name == gameState.currentPlayer.name then " <--" else ""
+    val fieldName = gameState.board.fieldAt(p.position).name
+    s"  ${p.name}: ${p.money}€ | Feld ${p.position} (${fieldName})$marker"
+  }
 
   def startGame(playerNames: List[String]): Unit =
     gameState = GameState(playerNames.map(Player(_)), Board())
     hasRolled = false
     message = "Spiel gestartet!"
+    notifyObservers()
 
   def rollDice(): Dice =
     val dice = Dice()
@@ -21,6 +36,7 @@ class GameController:
   def rollDice(dice: Dice): Unit =
     if hasRolled then
       message = "Du hast diese Runde bereits gewürfelt."
+      notifyObservers()
       return
 
     val player = gameState.currentPlayer
@@ -37,6 +53,7 @@ class GameController:
     gameState = updateCurrentPlayer(moved)
     handleFieldEffect(newPos, dice.total)
     hasRolled = true
+    notifyObservers()
 
   private def handleFieldEffect(position: Int, diceTotal: Int): Unit =
     val field = gameState.board.fieldAt(position)
@@ -137,15 +154,18 @@ class GameController:
     val updatedFields = gameState.board.fields.updated(player.position, boughtField)
     gameState = updateCurrentPlayer(player.removeMoney(price)).copy(board = Board(updatedFields))
     message = s"${player.name} kauft $fieldName für ${price}€"
+    notifyObservers()
     true
 
   def endTurn(): Unit =
     if !hasRolled then
       message = "Du musst zuerst würfeln."
+      notifyObservers()
       return
     hasRolled = false
     gameState = gameState.nextPlayer
     message = s"${gameState.currentPlayer.name} ist am Zug"
+    notifyObservers()
 
   private def payRent(payerName: String, ownerName: String, amount: Int): Unit =
     val players = gameState.players.map { pl =>
