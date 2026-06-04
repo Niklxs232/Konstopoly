@@ -3,11 +3,20 @@ package de.konstopoly.controller
 import de.konstopoly.model.*
 import de.konstopoly.model.fields.*
 import de.konstopoly.util.Observable
+import de.konstopoly.controller.commands.*
 
 class GameController extends Observable:
-  var gameState: GameState = _
+  private var _gameState: Option[GameState] = None
+  def gameState: GameState = _gameState.getOrElse(throw IllegalStateException("Spiel nicht gestartet"))
+  def gameState_=(state: GameState): Unit = _gameState = Some(state)
+
   var message: String = ""
   var hasRolled: Boolean = false
+
+  private val undoManager = new UndoManager
+
+  // Strategy Pattern: austauschbare Wuerfel-Strategie
+  var diceStrategy: () => Dice = () => Dice()
 
   def minPlayers: Int = PlayerConfig.minPlayers
   def maxPlayers: Int = PlayerConfig.maxPlayers
@@ -29,7 +38,7 @@ class GameController extends Observable:
     notifyObservers()
 
   def rollDice(): Dice =
-    val dice = Dice()
+    val dice = diceStrategy()
     rollDice(dice)
     dice
 
@@ -38,6 +47,9 @@ class GameController extends Observable:
       message = "Du hast diese Runde bereits gewürfelt."
       notifyObservers()
       return
+
+    val prevState = gameState
+    val prevRolled = hasRolled
 
     val player = gameState.currentPlayer
     val newPos = (player.position + dice.total) % 40
@@ -53,6 +65,19 @@ class GameController extends Observable:
     gameState = updateCurrentPlayer(moved)
     handleFieldEffect(newPos, dice.total)
     hasRolled = true
+
+    val capturedState = gameState
+    val capturedRolled = hasRolled
+    val capturedMessage = message
+    undoManager.execute(new Command:
+      def doStep(): Unit =
+        gameState = capturedState
+        hasRolled = capturedRolled
+        message = capturedMessage
+      def undoStep(): Unit =
+        gameState = prevState
+        hasRolled = prevRolled
+    )
     notifyObservers()
 
   private def handleFieldEffect(position: Int, diceTotal: Int): Unit =
@@ -150,10 +175,21 @@ class GameController extends Observable:
       case _ => false
 
   private def doBuy(fieldName: String, price: Int, boughtField: Field): Boolean =
+    val prevState = gameState
     val player = gameState.currentPlayer
     val updatedFields = gameState.board.fields.updated(player.position, boughtField)
     gameState = updateCurrentPlayer(player.removeMoney(price)).copy(board = Board(updatedFields))
     message = s"${player.name} kauft $fieldName für ${price}€"
+
+    val capturedState = gameState
+    val capturedMessage = message
+    undoManager.execute(new Command:
+      def doStep(): Unit =
+        gameState = capturedState
+        message = capturedMessage
+      def undoStep(): Unit =
+        gameState = prevState
+    )
     notifyObservers()
     true
 
@@ -162,9 +198,38 @@ class GameController extends Observable:
       message = "Du musst zuerst würfeln."
       notifyObservers()
       return
+
+    val prevState = gameState
+    val prevRolled = hasRolled
     hasRolled = false
     gameState = gameState.nextPlayer
     message = s"${gameState.currentPlayer.name} ist am Zug"
+
+    val capturedState = gameState
+    val capturedMessage = message
+    undoManager.execute(new Command:
+      def doStep(): Unit =
+        gameState = capturedState
+        hasRolled = false
+        message = capturedMessage
+      def undoStep(): Unit =
+        gameState = prevState
+        hasRolled = prevRolled
+    )
+    notifyObservers()
+
+  def undo(): Unit =
+    if undoManager.undo() then
+      message = "Rückgängig gemacht."
+    else
+      message = "Nichts zum Rückgängig machen."
+    notifyObservers()
+
+  def redo(): Unit =
+    if undoManager.redo() then
+      message = "Wiederholt."
+    else
+      message = "Nichts zum Wiederholen."
     notifyObservers()
 
   private def payRent(payerName: String, ownerName: String, amount: Int): Unit =
