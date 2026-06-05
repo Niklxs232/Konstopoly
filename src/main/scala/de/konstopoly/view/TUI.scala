@@ -19,6 +19,7 @@ class TUI(controller: GameController) extends Observer:
     controller.startGame(names)
     gameLoop()
 
+
   private def readPlayerCount(): Int =
     print(s"Anzahl Spieler (${controller.minPlayers}-${controller.maxPlayers}): ")
     val input = Try(StdIn.readLine().trim.toInt).toOption
