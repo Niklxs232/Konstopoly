@@ -2,26 +2,54 @@ package de.konstopoly.controller
 
 import de.konstopoly.model.*
 import de.konstopoly.model.fields.*
+import de.konstopoly.util.Observable
+import de.konstopoly.controller.commands.*
 
-class GameController:
-  var gameState: GameState = _
+class GameController extends Observable:
+  private var _gameState: Option[GameState] = None
+  def gameState: GameState = _gameState.getOrElse(throw IllegalStateException("Spiel nicht gestartet"))
+  def gameState_=(state: GameState): Unit = _gameState = Some(state)
+
   var message: String = ""
   var hasRolled: Boolean = false
+
+  private val undoManager = new UndoManager
+
+  // Strategy Pattern: austauschbare Wuerfel-Strategie
+  var diceStrategy: () => Dice = () => Dice()
+
+  def minPlayers: Int = PlayerConfig.minPlayers
+  def maxPlayers: Int = PlayerConfig.maxPlayers
+  def currentRound: Int = gameState.round
+  def currentPlayerName: String = gameState.currentPlayer.name
+
+  def winner: Option[String] = gameState.winner.map(_.name)
+
+  def playerInfoStrings: List[String] = gameState.players.map { p =>
+    val marker = if p.name == gameState.currentPlayer.name then " <--" else ""
+    val fieldName = gameState.board.fieldAt(p.position).name
+    s"  ${p.name}: ${p.money}€ | Feld ${p.position} (${fieldName})$marker"
+  }
 
   def startGame(playerNames: List[String]): Unit =
     gameState = GameState(playerNames.map(Player(_)), Board())
     hasRolled = false
     message = "Spiel gestartet!"
+    notifyObservers()
 
   def rollDice(): Dice =
-    val dice = Dice()
+    val dice = diceStrategy()
     rollDice(dice)
     dice
 
   def rollDice(dice: Dice): Unit =
     if hasRolled then
       message = "Du hast diese Runde bereits gewürfelt."
+      notifyObservers()
       return
+
+    val prevState = gameState
+    val prevRolled = hasRolled
 
     val player = gameState.currentPlayer
     val newPos = (player.position + dice.total) % 40
@@ -37,6 +65,20 @@ class GameController:
     gameState = updateCurrentPlayer(moved)
     handleFieldEffect(newPos, dice.total)
     hasRolled = true
+
+    val capturedState = gameState
+    val capturedRolled = hasRolled
+    val capturedMessage = message
+    undoManager.execute(new Command:
+      def doStep(): Unit =
+        gameState = capturedState
+        hasRolled = capturedRolled
+        message = capturedMessage
+      def undoStep(): Unit =
+        gameState = prevState
+        hasRolled = prevRolled
+    )
+    notifyObservers()
 
   private def handleFieldEffect(position: Int, diceTotal: Int): Unit =
     val field = gameState.board.fieldAt(position)
@@ -133,19 +175,62 @@ class GameController:
       case _ => false
 
   private def doBuy(fieldName: String, price: Int, boughtField: Field): Boolean =
+    val prevState = gameState
     val player = gameState.currentPlayer
     val updatedFields = gameState.board.fields.updated(player.position, boughtField)
     gameState = updateCurrentPlayer(player.removeMoney(price)).copy(board = Board(updatedFields))
     message = s"${player.name} kauft $fieldName für ${price}€"
+
+    val capturedState = gameState
+    val capturedMessage = message
+    undoManager.execute(new Command:
+      def doStep(): Unit =
+        gameState = capturedState
+        message = capturedMessage
+      def undoStep(): Unit =
+        gameState = prevState
+    )
+    notifyObservers()
     true
 
   def endTurn(): Unit =
     if !hasRolled then
       message = "Du musst zuerst würfeln."
+      notifyObservers()
       return
+
+    val prevState = gameState
+    val prevRolled = hasRolled
     hasRolled = false
     gameState = gameState.nextPlayer
     message = s"${gameState.currentPlayer.name} ist am Zug"
+
+    val capturedState = gameState
+    val capturedMessage = message
+    undoManager.execute(new Command:
+      def doStep(): Unit =
+        gameState = capturedState
+        hasRolled = false
+        message = capturedMessage
+      def undoStep(): Unit =
+        gameState = prevState
+        hasRolled = prevRolled
+    )
+    notifyObservers()
+
+  def undo(): Unit =
+    if undoManager.undo() then
+      message = "Rückgängig gemacht."
+    else
+      message = "Nichts zum Rückgängig machen."
+    notifyObservers()
+
+  def redo(): Unit =
+    if undoManager.redo() then
+      message = "Wiederholt."
+    else
+      message = "Nichts zum Wiederholen."
+    notifyObservers()
 
   private def payRent(payerName: String, ownerName: String, amount: Int): Unit =
     val players = gameState.players.map { pl =>
