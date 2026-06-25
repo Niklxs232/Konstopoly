@@ -2,6 +2,7 @@ package de.konstopoly.controller.commands
 
 import de.konstopoly.model.GameState
 
+// Pattern-Command (SE-7)
 trait Command:
   def doStep(): Unit
   def undoStep(): Unit

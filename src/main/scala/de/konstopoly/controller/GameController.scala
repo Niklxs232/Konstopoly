@@ -6,16 +6,21 @@ import de.konstopoly.util.Observable
 import de.konstopoly.controller.commands.*
 
 class GameController extends Observable:
+  // Pattern-Option statt null (SE-8)
   private var _gameState: Option[GameState] = None
   def gameState: GameState = _gameState.getOrElse(throw IllegalStateException("Spiel nicht gestartet"))
   def gameState_=(state: GameState): Unit = _gameState = Some(state)
+
+  // Wurde schon ein Spiel gestartet? Wird von TUI und GUI gebraucht,
+  // damit sie vor dem Spielstart nichts anzeigen wollen, was es noch nicht gibt.
+  def isStarted: Boolean = _gameState.isDefined
 
   var message: String = ""
   var hasRolled: Boolean = false
 
   private val undoManager = new UndoManager
 
-  // Strategy Pattern: austauschbare Wuerfel-Strategie
+  // Pattern-Strategy (SE-7)
   var diceStrategy: () => Dice = () => Dice()
 
   def minPlayers: Int = PlayerConfig.minPlayers
