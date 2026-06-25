@@ -2,26 +2,34 @@ package de.konstopoly.view
 
 import de.konstopoly.controller.GameController
 import de.konstopoly.util.Observer
+
 import scala.io.StdIn
 import scala.util.Try
 
 class TUI(controller: GameController) extends Observer:
   controller.add(this)
 
+  // Event-basiert: der Controller ruft bei jeder Aenderung update() auf
+  // (egal ob die Aenderung von der TUI oder von der GUI kommt). Die TUI
+  // gibt dann den neuen Spielzustand aus. So bleiben TUI und GUI synchron.
   def update: Unit =
-    println(controller.message)
+    println()
+    if controller.isStarted then
+      printState()
+      if controller.winner.isEmpty then printCommands()
+    if controller.message.nonEmpty then println(controller.message)
 
   def run(): Unit =
     println("=== Willkommen bei Konstopoly! ===")
     println()
     val count = readPlayerCount()
     val names = readPlayerNames(count)
-    controller.startGame(names)
+    controller.startGame(names) // loest update() aus
     gameLoop()
-
 
   private def readPlayerCount(): Int =
     print(s"Anzahl Spieler (${controller.minPlayers}-${controller.maxPlayers}): ")
+    // Pattern-Try statt try-catch (SE-8)
     val input = Try(StdIn.readLine().trim.toInt).toOption
     input.filter(n => n >= controller.minPlayers && n <= controller.maxPlayers) match
       case Some(n) => n
@@ -35,16 +43,15 @@ class TUI(controller: GameController) extends Observer:
       StdIn.readLine().trim
     }.toList
 
+  // Liest nur noch Befehle ein. Die Ausgabe macht update().
   private def gameLoop(): Unit =
     var running = true
     while running do
-      println()
-      printState()
-      printCommands()
       print("> ")
+      // Pattern-Option statt null (SE-8)
       Option(StdIn.readLine()) match
         case Some(input) => running = handleInput(input.trim.toLowerCase)
-        case None => running = false
+        case None        => running = false
     println("Spiel beendet. Auf Wiedersehen!")
 
   private def printState(): Unit =

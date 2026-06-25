@@ -1,5 +1,6 @@
 package de.konstopoly.model
 
+// Pattern-Singleton (SE-7)
 object PlayerConfig:
   val minPlayers: Int = 2
   val maxPlayers: Int = 4
