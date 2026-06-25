@@ -1,4 +1,4 @@
-package de.konstopoly.controller.commands
+ package de.konstopoly.controller.commands
 
 import de.konstopoly.model.GameState
 
