@@ -1,20 +1,17 @@
 package de.konstopoly.view
 
-import de.konstopoly.controller.GameController
+import de.konstopoly.controller.ControllerInterface
 import de.konstopoly.model.Field
 import de.konstopoly.model.fields.*
 
 import scala.swing.Panel
 import java.awt.{BasicStroke, Color, Dimension, Font, Graphics2D}
 
-// Zeichnet das Spielbrett. Die 40 Felder liegen wie bei Monopoly als Ring
-// am Rand eines 11x11 Rasters. In der Mitte steht der Titel.
-// Die Spielfiguren werden als kleine Kreise auf ihre Felder gemalt.
-class BoardPanel(controller: GameController) extends Panel:
+
+class BoardPanel(controller: ControllerInterface) extends Panel:
   preferredSize = new Dimension(700, 700)
 
   // Rechnet eine Brett-Position (0-39) in eine Rasterzelle (Zeile, Spalte) um.
-  // Start (Los) ist unten rechts, dann geht es gegen den Uhrzeigersinn herum.
   private def cellOf(pos: Int): (Int, Int) =
     if pos <= 10 then (10, 10 - pos)          // untere Reihe (rechts -> links)
     else if pos <= 20 then (20 - pos, 0)      // linke Spalte (unten -> oben)
@@ -24,11 +21,10 @@ class BoardPanel(controller: GameController) extends Panel:
   override def paintComponent(g: Graphics2D): Unit =
     super.paintComponent(g)
 
-    // weisser Hintergrund
     g.setColor(Color.white)
     g.fillRect(0, 0, size.width, size.height)
 
-    // Solange noch kein Spiel laeuft, gibt es kein Brett.
+    // Solange noch kein Spiel läuft, gibt es kein Brett.
     if !controller.isStarted then
       g.setColor(Color.darkGray)
       g.setFont(new Font("SansSerif", Font.BOLD, 22))
@@ -38,13 +34,13 @@ class BoardPanel(controller: GameController) extends Panel:
     val boardSize = math.min(size.width, size.height)
     val cell = boardSize / 11
 
-    // Moeglichkeit 1: ganzes Spielfeld als ein Bild.
+    // Möglichkeit 1 ganzes Spielfeld als ein Bild
     FieldImages.boardBackground.foreach { img =>
       g.drawImage(img, 0, 0, cell * 11, cell * 11, null)
     }
 
     val state = controller.gameState
-    // Name -> Spielernummer (fuer die Besitzer-Farbe)
+    // Name -> Spielernummer (für die Besitzer-Farbe)
     val playerIndex = state.players.map(_.name).zipWithIndex.toMap
 
     // alle 40 Felder zeichnen
@@ -54,7 +50,7 @@ class BoardPanel(controller: GameController) extends Panel:
       val ownerIdx = ownerOf(field).flatMap(playerIndex.get)
       drawField(g, field, col * cell, row * cell, cell, ownerIdx)
 
-    // Titel in der Mitte
+    // Titel
     g.setColor(new Color(200, 200, 200))
     g.setFont(new Font("SansSerif", Font.BOLD, 28))
     g.drawString("KONSTOPOLY", cell * 2, cell * 6)
@@ -68,22 +64,19 @@ class BoardPanel(controller: GameController) extends Panel:
   // Ein einzelnes Feld zeichnen.
   private def drawField(g: Graphics2D, field: Field, x: Int, y: Int, cell: Int, ownerIdx: Option[Int]): Unit =
     FieldImages.imageFor(field) match
-      // Moeglichkeit 2: einzelne Strasse als Bild.
+      // Möglichkeit 2 einzelne Strasse als Bild
       case Some(img) =>
         g.drawImage(img, x, y, cell, cell, null)
-      // sonst: einfaches farbiges Feld
       case None =>
         g.setColor(new Color(238, 238, 238))
         g.fillRect(x, y, cell, cell)
 
-        // oben ein Farbband fuer die Grundstuecks-Gruppe
         field match
           case p: PropertyField =>
             g.setColor(groupColor(p.colorGroup))
             g.fillRect(x, y, cell, cell / 5)
           case _ =>
 
-        // Feldname (klein, evtl. abgeschnitten)
         g.setColor(Color.black)
         g.setFont(new Font("SansSerif", Font.PLAIN, 8))
         drawName(g, field.name, x + 2, y + cell / 4 + 8, cell - 4)
@@ -124,7 +117,7 @@ class BoardPanel(controller: GameController) extends Panel:
     case u: UtilityField  => u.owner
     case _                => None
 
-  // Farben fuer die Grundstuecks-Gruppen.
+  // Farben für die Grundstücks-Gruppen.
   private def groupColor(group: String): Color = group match
     case "braun"      => new Color(150, 75, 0)
     case "blau"       => new Color(135, 206, 235)
