@@ -1,6 +1,6 @@
 package de.konstopoly.view
 
-import de.konstopoly.controller.GameController
+import de.konstopoly.controller.ControllerInterface
 import de.konstopoly.util.Observer
 
 import scala.swing.*
@@ -9,15 +9,15 @@ import scala.util.Try
 
 
 // GUI und TUI laufen gleichzeitig und teilen sich denselben Controller.
-class GUI(controller: GameController) extends Observer:
+class GUI(controller: ControllerInterface) extends Observer:
   controller.add(this)
 
-  // die einzelnen Teile der Oberflaeche
+  // die einzelnen Teile der Oberfläche
   private val boardPanel  = new BoardPanel(controller)
   private val playerPanel = new PlayerPanel(controller)
   private val messageLabel = new Label("Willkommen bei Konstopoly!")
 
-  // die Knoepfe
+  // die Knöpfe
   private val newGameButton = new Button("Neues Spiel")
   private val rollButton    = new Button("Würfeln")
   private val buyButton     = new Button("Kaufen")
@@ -46,7 +46,7 @@ class GUI(controller: GameController) extends Observer:
       }) = BorderPanel.Position.East
       layout(messageLabel) = BorderPanel.Position.South
 
-    // auf die Knoepfe reagieren (Publisher/Reactor aus den Folien)
+    // auf die Knöpfe reagieren 
     listenTo(newGameButton, rollButton, buyButton, endButton, undoButton, redoButton)
     reactions += {
       case ButtonClicked(`newGameButton`) => startNewGame()

@@ -1,13 +1,13 @@
 package de.konstopoly.view
 
-import de.konstopoly.controller.GameController
+import de.konstopoly.controller.ControllerInterface
 
 import scala.swing.{BoxPanel, Label, Orientation, Swing}
 import java.awt.{Color, Font}
 
 // Die Seitenleiste mit den Spieler-Infos (Geld, Position).
 // Der Spieler, der gerade dran ist, wird mit "<-- am Zug" markiert.
-class PlayerPanel(controller: GameController) extends BoxPanel(Orientation.Vertical):
+class PlayerPanel(controller: ControllerInterface) extends BoxPanel(Orientation.Vertical):
   border = Swing.EmptyBorder(10)
 
   // Baut die Anzeige neu auf. Wird von der GUI bei jeder Aenderung gerufen.

@@ -1,12 +1,12 @@
 package de.konstopoly.view
 
-import de.konstopoly.controller.GameController
+import de.konstopoly.controller.ControllerInterface
 import de.konstopoly.util.Observer
 
 import scala.io.StdIn
 import scala.util.Try
 
-class TUI(controller: GameController) extends Observer:
+class TUI(controller: ControllerInterface) extends Observer:
   controller.add(this)
 
   // Event-basiert: der Controller ruft bei jeder Aenderung update() auf

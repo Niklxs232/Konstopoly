@@ -1,12 +1,15 @@
 package de.konstopoly
 
-import de.konstopoly.controller.GameController
+import com.google.inject.Guice
+import de.konstopoly.controller.ControllerInterface
+import de.konstopoly.module.KonstopolyModule
 import de.konstopoly.view.{GUI, TUI}
 
 @main def main(): Unit =
-  val controller = new GameController
-  // GUI und TUI sind beide Observer desselben Controllers und laufen
-  // gleichzeitig. Die GUI oeffnet ein Fenster, die TUI laeuft in der Konsole.
+  val injector = Guice.createInjector(new KonstopolyModule)
+
+  val controller = injector.getInstance(classOf[ControllerInterface])
+
   val gui = new GUI(controller)
   val tui = new TUI(controller)
   tui.run()

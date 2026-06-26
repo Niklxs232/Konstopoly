@@ -5,7 +5,7 @@ import de.konstopoly.model.fields.*
 import de.konstopoly.util.Observable
 import de.konstopoly.controller.commands.*
 
-class GameController extends Observable:
+class GameController extends Observable, ControllerInterface:
   // Pattern-Option statt null (SE-8)
   private var _gameState: Option[GameState] = None
   def gameState: GameState = _gameState.getOrElse(throw IllegalStateException("Spiel nicht gestartet"))
