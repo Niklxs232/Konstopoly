@@ -65,7 +65,10 @@ class GameControllerSpec extends AnyWordSpec {
         c.hasRolled should be(true)
         dice.total should be >= 2
         dice.total should be <= 12
-        c.gameState.currentPlayer.position should be(dice.total)
+        // Bewusst KEINE feste Positions-Pruefung: bei echten Zufallswuerfeln
+        // kann man auf einem Ereignisfeld landen, das eine Karte zieht und den
+        // Spieler verschiebt. Die genaue Bewegung testet stattdessen der Test
+        // "move the current player by dice total" mit einem festen Wuerfel.
       }
 
       "set hasRolled to true" in {
