@@ -7,7 +7,7 @@ import javax.imageio.ImageIO
 
 
 object FieldImages:
-  
+
   private val cache = scala.collection.mutable.Map[String, Option[BufferedImage]]()
 
   def boardBackground: Option[BufferedImage] =
@@ -19,7 +19,7 @@ object FieldImages:
   // Aus einem Feldnamen einen einfachen Dateinamen machen.
   private def keyOf(name: String): String =
     name.toLowerCase
-      .replaceAll("[^a-z0-9]+", "-") // alles ausser Buchstaben/Zahlen -> "-"
+      .replaceAll("[^a-z0-9]+", "-") // alles ausser Buchstaben/Zahlen -> "- "
       .replaceAll("^-+|-+$", "")     // "-" am Anfang/Ende weg
 
   private def load(path: String): Option[BufferedImage] =
