@@ -6,7 +6,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "Konstopoly",
     //idePackagePrefix := Some("de.konstopoly"),
-    coverageExcludedFiles := ".*Main.*|.*TUI.*|.*Module.*",
+    coverageExcludedFiles := ".*Main.*|.*TUI.*|.*Module.*|.*GUI.*",
     libraryDependencies ++= Seq(
       "org.scala-lang.modules" %% "scala-swing" % "3.0.0",
       "com.google.inject"       % "guice"       % "7.0.0",
