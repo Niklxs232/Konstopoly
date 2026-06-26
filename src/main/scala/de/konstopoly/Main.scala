@@ -7,6 +7,9 @@ import de.konstopoly.view.{GUI, TUI}
 
 @main def main(): Unit =
 
+  val injector = Guice.createInjector(new KonstopolyModule)
+
+  val controller = injector.getInstance(classOf[ControllerInterface])
 
   val gui = new GUI(controller)
   val tui = new TUI(controller)
