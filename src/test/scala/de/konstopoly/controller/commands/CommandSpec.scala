@@ -75,9 +75,12 @@ class CommandSpec extends AnyWordSpec {
 
     "allow switching strategy at runtime" in {
       val c = controllerWithPlayers("Anna", "Ben")
-      c.diceStrategy = () => Dice(1, 1)
+      // Dice(1,2) = 3 -> Position 3 ist ein normales Grundstueck ohne
+      // Zufallseffekt. (Position 2 waere ein Ereignisfeld, das eine zufaellige
+      // Karte zieht und den Test dadurch unzuverlaessig machen wuerde.)
+      c.diceStrategy = () => Dice(1, 2)
       c.rollDice()
-      c.gameState.currentPlayer.position should be(2)
+      c.gameState.currentPlayer.position should be(3)
       c.endTurn()
       c.diceStrategy = () => Dice(5, 5)
       c.rollDice()
