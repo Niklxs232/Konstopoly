@@ -43,7 +43,7 @@ class TUI(controller: ControllerInterface) extends Observer:
       StdIn.readLine().trim
     }.toList
 
-  // Liest nur noch Befehle ein. Die Ausgabe macht update().
+
   private def gameLoop(): Unit =
     var running = true
     while running do
@@ -60,9 +60,9 @@ class TUI(controller: ControllerInterface) extends Observer:
 
   private def printCommands(): Unit =
     if !controller.hasRolled then
-      println("Befehle: (r)oll | (u)ndo | (p)roperties | (q)uit")
+      println("Befehle: (r)oll | (u)ndo | (p)roperties | (s)ave | (l)oad | (q)uit")
     else
-      println("Befehle: (b)uy | (e)nd | (u)ndo | (p)roperties | (q)uit")
+      println("Befehle: (b)uy | (e)nd | (u)ndo | (p)roperties | (s)ave | (l)oad | (q)uit")
 
   private def handleInput(input: String): Boolean =
     input match
@@ -77,6 +77,10 @@ class TUI(controller: ControllerInterface) extends Observer:
         controller.undo()
       case "redo" =>
         controller.redo()
+      case "save" | "s" =>
+        controller.save()
+      case "load" | "l" =>
+        controller.load()
       case "properties" | "p" =>
         val props = controller.currentPlayerProperties
         if props.isEmpty then

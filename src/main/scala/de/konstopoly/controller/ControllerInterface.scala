@@ -3,13 +3,7 @@ package de.konstopoly.controller
 import de.konstopoly.model.{Dice, GameState}
 import de.konstopoly.util.Observer
 
-// Das ist die Schnittstelle (der "Port") der Controller-Komponente.
-//
-// Die Views (TUI und GUI) duerfen nur ueber dieses Interface auf den
-// Controller zugreifen - nicht direkt auf die konkrete Klasse GameController.
-// Dadurch haengen die Views nur noch an einer Abstraktion. Man koennte die
-// Controller-Komponente komplett austauschen, ohne an den Views etwas zu
-// aendern (Dependency Inversion Principle aus den Folien).
+
 trait ControllerInterface:
 
   // --- sich als Beobachter (Observer) anmelden ---
@@ -36,3 +30,5 @@ trait ControllerInterface:
   def endTurn(): Unit
   def undo(): Unit
   def redo(): Unit
+  def save(): Unit
+  def load(): Unit

@@ -1,18 +1,19 @@
 package de.konstopoly.controller
 
+import com.google.inject.Inject
 import de.konstopoly.model.*
 import de.konstopoly.model.fields.*
 import de.konstopoly.util.Observable
 import de.konstopoly.controller.commands.*
+import de.konstopoly.fileIO.{FileIOInterface, FileIOJson}
+import scala.util.{Failure, Success, Try}
 
-class GameController extends Observable, ControllerInterface:
+class GameController @Inject() (fileIO: FileIOInterface = new FileIOJson) extends Observable, ControllerInterface:
   // Pattern-Option statt null (SE-8)
   private var _gameState: Option[GameState] = None
   def gameState: GameState = _gameState.getOrElse(throw IllegalStateException("Spiel nicht gestartet"))
   def gameState_=(state: GameState): Unit = _gameState = Some(state)
 
-  // Wurde schon ein Spiel gestartet? Wird von TUI und GUI gebraucht,
-  // damit sie vor dem Spielstart nichts anzeigen wollen, was es noch nicht gibt.
   def isStarted: Boolean = _gameState.isDefined
 
   var message: String = ""
@@ -235,6 +236,21 @@ class GameController extends Observable, ControllerInterface:
       message = "Wiederholt."
     else
       message = "Nichts zum Wiederholen."
+    notifyObservers()
+
+  def save(): Unit =
+    fileIO.save(gameState)
+    message = "Spiel gespeichert."
+    notifyObservers()
+
+  def load(): Unit =
+    Try(fileIO.load()) match
+      case Success(state) =>
+        gameState = state
+        hasRolled = false
+        message = "Spiel geladen."
+      case Failure(_) =>
+        message = "Laden fehlgeschlagen."
     notifyObservers()
 
   private def payRent(payerName: String, ownerName: String, amount: Int): Unit =

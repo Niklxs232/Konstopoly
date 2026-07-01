@@ -24,9 +24,11 @@ class GUI(controller: ControllerInterface) extends Observer:
   private val endButton     = new Button("Zug beenden")
   private val undoButton    = new Button("Rückgängig")
   private val redoButton    = new Button("Wiederholen")
+  private val saveButton    = new Button("Speichern")
+  private val loadButton    = new Button("Laden")
 
-  private val buttonPanel = new GridPanel(6, 1):
-    contents ++= Seq(newGameButton, rollButton, buyButton, endButton, undoButton, redoButton)
+  private val buttonPanel = new GridPanel(8, 1):
+    contents ++= Seq(newGameButton, rollButton, buyButton, endButton, undoButton, redoButton, saveButton, loadButton)
 
   // das Fenster
   private val frame = new MainFrame:
@@ -47,7 +49,7 @@ class GUI(controller: ControllerInterface) extends Observer:
       layout(messageLabel) = BorderPanel.Position.South
 
     // auf die Knöpfe reagieren 
-    listenTo(newGameButton, rollButton, buyButton, endButton, undoButton, redoButton)
+    listenTo(newGameButton, rollButton, buyButton, endButton, undoButton, redoButton, saveButton, loadButton)
     reactions += {
       case ButtonClicked(`newGameButton`) => startNewGame()
       case ButtonClicked(`rollButton`)    => controller.rollDice()
@@ -55,6 +57,8 @@ class GUI(controller: ControllerInterface) extends Observer:
       case ButtonClicked(`endButton`)     => controller.endTurn()
       case ButtonClicked(`undoButton`)    => controller.undo()
       case ButtonClicked(`redoButton`)    => controller.redo()
+      case ButtonClicked(`saveButton`)    => controller.save()
+      case ButtonClicked(`loadButton`)    => controller.load()
     }
 
   // Fenster anzeigen
@@ -78,6 +82,8 @@ class GUI(controller: ControllerInterface) extends Observer:
     endButton.enabled  = laeuft && controller.hasRolled && !gewonnen
     undoButton.enabled = laeuft
     redoButton.enabled = laeuft
+    saveButton.enabled = laeuft
+    loadButton.enabled = true // letzten Spielstand jederzeit wiederherstellen
 
   // Fragt nach der Spieleranzahl und startet ein neues Spiel mit
   private def startNewGame(): Unit =

@@ -9,6 +9,8 @@ lazy val root = (project in file("."))
     coverageExcludedFiles := ".*Main.*|.*TUI.*|.*Module.*|.*GUI.*",
     libraryDependencies ++= Seq(
       "org.scala-lang.modules" %% "scala-swing" % "3.0.0",
+      "org.scala-lang.modules" %% "scala-xml"   % "2.4.0",
+      "org.playframework"      %% "play-json"   % "3.0.4",
       "com.google.inject"       % "guice"       % "7.0.0",
       "org.scalactic"          %% "scalactic"   % "3.2.18",
       "org.scalatest"          %% "scalatest"   % "3.2.18" % Test
